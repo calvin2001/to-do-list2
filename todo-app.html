@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 할 일 관리 앱</title>
+    <style>
+        /* 🎯 CSS는 최소한으로! 기능에 집중 */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        /* 🎯 모든 버튼 동일한 기본 스타일 */
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        /* 입력 필드들 */
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 5px 0;
+            font-size: 16px;
+        }
+        
+        /* 할 일 아이템 */
+        .todo-item {
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .todo-item.completed {
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+        
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+        }
+        
+        .todo-text.completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        
+        .priority {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .priority-high { background: #ffebee; color: #c62828; }
+        .priority-medium { background: #fff3e0; color: #ef6c00; }
+        .priority-low { background: #e8f5e8; color: #2e7d32; }
+        
+        /* 필터 섹션 */
+        .filters {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        /* 반응형 */
+        @media (max-width: 600px) {
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .todo-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 할 일 관리 앱</h1>
+            <p>JavaScript 중심 학습 프로젝트</p>
+        </div>
+
+        <!-- 할 일 추가 섹션 -->
+        <div class="add-section">
+            <h3>🆕 새 할 일 추가</h3>
+            <input type="text" id="todoInput" class="form-control" placeholder="할 일을 입력하세요..." maxlength="100">
+            
+            <div style="margin: 10px 0;">
+                <label>우선순위:</label>
+                <select id="prioritySelect" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">
+                    <option value="low">낮음</option>
+                    <option value="medium">보통</option>
+                    <option value="high">높음</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-success" onclick="addTodo()">➕ 추가하기</button>
+        </div>
+
+        <!-- 필터 및 검색 섹션 -->
+        <div class="filters">
+            <div>
+                <label>필터:</label>
+                <button class="btn filter-btn active" onclick="filterTodos('all')" data-filter="all">전체</button>
+                <button class="btn filter-btn" onclick="filterTodos('active')" data-filter="active">진행중</button>
+                <button class="btn filter-btn" onclick="filterTodos('completed')" data-filter="completed">완료됨</button>
+            </div>
+            
+            <div>
+                <label>우선순위:</label>
+                <button class="btn filter-btn" onclick="filterByPriority('all')" data-priority="all">전체</button>
+                <button class="btn btn-danger filter-btn" onclick="filterByPriority('high')" data-priority="high">높음</button>
+                <button class="btn btn-warning filter-btn" onclick="filterByPriority('medium')" data-priority="medium">보통</button>
+                <button class="btn btn-success filter-btn" onclick="filterByPriority('low')" data-priority="low">낮음</button>
+            </div>
+            
+            <div style="flex: 1;">
+                <input type="text" id="searchInput" class="form-control" placeholder="할 일 검색..." onkeyup="searchTodos()">
+            </div>
+        </div>
+
+        <!-- 통계 섹션 -->
+        <div class="stats" id="statsSection">
+            <strong>통계:</strong> 
+            <span id="totalCount">0</span>개 전체 | 
+            <span id="activeCount">0</span>개 진행중 | 
+            <span id="completedCount">0</span>개 완료
+        </div>
+
+        <!-- 할 일 목록 -->
+        <div class="todo-list" id="todoList">
+            <!-- 동적으로 생성됨 -->
+        </div>
+
+        <!-- 전체 삭제 버튼 -->
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="btn btn-danger" onclick="clearAllTodos()">🗑️ 전체 삭제</button>
+            <button class="btn btn-warning" onclick="clearCompletedTodos()">✅ 완료된 항목 삭제</button>
+        </div>
+    </div>
+
+    <script>
+        // 🎯 전역 변수들 - 앱의 상태 관리
+        let todos = [];
+        let currentFilter = 'all';
+        let currentPriorityFilter = 'all';
+        let currentSearchTerm = '';
+
+        // 🎯 할 일 객체 구조
+        /*
+        {
+            id: 고유번호,
+            text: "할 일 내용",
+            completed: true/false,
+            priority: "high/medium/low",
+            createdAt: "생성시간",
+            completedAt: "완료시간"
+        }
+        */
+
+        // 🎯 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📋 할 일 앱 시작!');
+            loadTodosFromStorage();
+            renderTodos();
+            setupEventListeners();
+            
+            // 개발자를 위한 샘플 데이터 (처음 실행 시)
+            if (todos.length === 0) {
+                addSampleData();
+            }
+        });
+
+        // 🎯 이벤트 리스너 설정
+        function setupEventListeners() {
+            const todoInput = document.getElementById('todoInput');
+            
+            // Enter 키로 할 일 추가
+            todoInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTodo();
+                }
+            });
+
+            // 실시간 검색
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function() {
+                searchTodos();
+            });
+        }
+
+        // 🎯 새 할 일 추가
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            const prioritySelect = document.getElementById('prioritySelect');
+            const text = input.value.trim();
+            
+            // 입력 검증
+            if (text === '') {
+                alert('할 일을 입력해주세요!');
+                input.focus();
+                return;
+            }
+
+            if (text.length > 100) {
+                alert('할 일은 100자 이내로 입력해주세요!');
+                return;
+            }
+
+            // 새 할 일 객체 생성
+            const newTodo = {
+                id: Date.now(),// 간단한 고유 ID
+                text: text,
+                completed: false,
+                priority: prioritySelect.value,
+                createdAt: new Date().toLocaleString('ko-KR'),
+                completedAt: null
+            };
+
+            // 배열에 추가 (최신 항목을 맨 위에)
+            todos.unshift(newTodo);
+            
+            // UI 업데이트
+            input.value = '';
+            prioritySelect.value = 'low';
+            input.focus();
+            
+            // 저장 및 렌더링
+            saveTodosToStorage();
+            renderTodos();
+            
+            console.log('✅ 새 할 일 추가:', newTodo);
+        }
+
+        // 🎯 할 일 완료/미완료 토글
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
+            todo.completed = !todo.completed;
+            todo.completedAt = todo.completed ? new Date().toLocaleString('ko-KR') : null;
+            
+            saveTodosToStorage();
+            renderTodos();
+            
+            console.log(todo.completed ? '✅ 완료:' : '🔄 미완료:', todo.text);
+        }
+
+        // 🎯 할 일 삭제
+        function deleteTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
+            if (confirm(`"${todo.text}"을(를) 정말 삭제하시겠습니까?`)) {
+                todos = todos.filter(t => t.id !== id)
+                saveTodosToStorage();
+                renderTodos();
+                console.log('🗑️ 삭제:', todo.text);
+            }
+        }
+
+        // 🎯 할 일 수정
+        function editTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
+            const newText = prompt('할 일을 수정하세요:', todo.text);
+            if (newText === null) return; // 취소
+            
+            const trimmedText = newText.trim();
+            if (trimmedText === '') {
+                alert('할 일을 입력해주세요!');
+                return;
+            }
+
+            if (trimmedText.length > 100) {
+                alert('할 일은 100자 이내로 입력해주세요!');
+                return;
+            }
+
+            todo.text = trimmedText;
+            saveTodosToStorage();
+            renderTodos();
+            
+            console.log('✏️ 수정:', todo.text);
+        }
+
+        // 🎯 우선순위 변경
+        function changePriority(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
+            const priorities = ['low', 'medium', 'high'];
+            const currentIndex = priorities.indexOf(todo.priority);
+            const nextIndex = (currentIndex + 1) % priorities.length;
+            
+            todo.priority = priorities[nextIndex];
+            saveTodosToStorage();
+            renderTodos();
+            
+            console.log('🎯 우선순위 변경:', todo.text, '->', todo.priority);
+        }
+
+        // 🎯 필터링 함수들
+        function filterTodos(filter) {
+            currentFilter = filter;
+            updateActiveFilterButton();
+            renderTodos();
+            console.log('🔍 필터 변경:', filter);
+        }dsfrf
+
+        function filterByPriority(priority) {
+            currentPriorityFilter = priority;
+            renderTodos();
+            console.log('🎯 우선순위 필터:', priority);
+        }
+
+        function searchTodos() {
+            const searchInput = document.getElementById('searchInput');
+            currentSearchTerm = searchInput.value.trim().toLowerCase();
+            renderTodos();
+            console.log('🔎 검색어:', currentSearchTerm);
+        }
+
+        // 🎯 필터 버튼 활성화 상태 업데이트
+        function updateActiveFilterButton() {
+            const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === currentFilter) {
+                    btn.classList.add('active');
+                    btn.style.background = '#0056b3';
+                } else {
+                    btn.style.background = '';
+                }
+            });
+        }
+
+        // 🎯 할 일 목록 렌더링 (핵심 함수!)
+        function renderTodos() {
+            const todoList = document.getElementById('todoList');
+            
+            // 1단계: 필터링된 할 일 목록 가져오기
+            let filteredTodos = getFilteredTodos();
+            
+            // 2단계: 빈 목록 처리
+            if (filteredTodos.length === 0) {
+                todoList.innerHTML = `
+                    <div style="text-align: center; padding: 50px; color: #6c757d;">
+                        <h3>📭 할 일이 없습니다</h3>
+                        <p>새로운 할 일을 추가해보세요!</p>
+                    </div>
+                `;
+                updateStats();
+                return;
+            }
+
+            // 3단계: 우선순위별 정렬
+            filteredTodos.sort((a, b) => {
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                    return priorityOrder[b.priority] - priorityOrder[a.priority];
+                }
+                // 같은 우선순위면 최신순
+                return new Date(b.createdAt) - new Date(a.createdAt);
+            });
+
+            // 4단계: HTML 생성
+            const todosHTML = filteredTodos.map(todo => createTodoHTML(todo)).join('');
+            todoList.innerHTML = todosHTML;
+
+            // 5단계: 통계 업데이트
+            updateStats();
+            
+            console.log('🖼️ 렌더링 완료:', filteredTodos.length, '개 항목');
+        }
+
+        // 🎯 필터링된 할 일 목록 가져오기
+        function getFilteredTodos() {
+            return todos.filter(todo => {
+                // 완료 상태 필터
+                if (currentFilter === 'active' && todo.completed) return false;
+                if (currentFilter === 'completed' && !todo.completed) return false;
+                
+                // 우선순위 필터
+                if (currentPriorityFilter !== 'all' && todo.priority !== currentPriorityFilter) return false;
+                
+                // 검색어 필터
+                if (currentSearchTerm && !todo.text.toLowerCase().includes(currentSearchTerm)) return false;
+                
+                return true;
+            });
+        }
+
+        // 🎯 개별 할 일 HTML 생성
+        function createTodoHTML(todo) {
+            const priorityClass = `priority priority-${todo.priority}`;
+            const priorityText = { high: '높음', medium: '보통', low: '낮음' }[todo.priority];
+            
+            return `
+                <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                    <input type="checkbox" 
+                           ${todo.completed ? 'checked' : ''} 
+                           onchange="toggleTodo(${todo.id})"
+                           style="transform: scale(1.2);">
+                    
+                    <span class="todo-text ${todo.completed ? 'completed' : ''}">${escapeHtml(todo.text)}</span>
+                    
+                    <span class="${priorityClass}">${priorityText}</span>
+                    
+                    <div>
+                        <button class="btn" onclick="editTodo(${todo.id})" title="수정">✏️</button>
+                        <button class="btn btn-warning" onclick="changePriority(${todo.id})" title="우선순위 변경">🎯</button>
+                        <button class="btn btn-danger" onclick="deleteTodo(${todo.id})" title="삭제">🗑️</button>
+                    </div>
+                    
+                    <div style="font-size: 12px; color: #6c757d;">
+                        생성: ${todo.createdAt}
+                        ${todo.completedAt ? `<br>완료: ${todo.completedAt}` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 🎯 통계 업데이트
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(t => t.completed).length;
+            const active = total - completed;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('activeCount').textContent = active;
+            document.getElementById('completedCount').textContent = completed;
+        }
+
+        // 🎯 전체 삭제
+        function clearAllTodos() {
+            if (todos.length === 0) {
+                alert('삭제할 할 일이 없습니다.');
+                return;
+            }
+
+            if (confirm(`모든 할 일 ${todos.length}개를 정말 삭제하시겠습니까?`)) {
+                todos = [];
+                saveTodosToStorage();
+                renderTodos();
+                console.log('🗑️ 전체 삭제 완료');
+            }
+        }
+
+        // 🎯 완료된 항목만 삭제
+        function clearCompletedTodos() {
+            const completedTodos = todos.filter(t => t.completed);
+            
+            if (completedTodos.length === 0) {
+                alert('완료된 할 일이 없습니다.');
+                return;
+            }
+
+            if (confirm(`완료된 할 일 ${completedTodos.length}개를 삭제하시겠습니까?`)) {
+                todos = todos.filter(t => !t.completed);
+                saveTodosToStorage();
+                renderTodos();
+                console.log('✅ 완료된 항목 삭제:', completedTodos.length, '개');
+            }
+        }
+
+        // 🎯 로컬스토리지 저장
+        function saveTodosToStorage() {
+            try {
+                localStorage.setItem('todos', JSON.stringify(todos));
+                console.log('💾 저장 완료:', todos.length, '개 항목');
+            } catch (error) {
+                console.error('💥 저장 실패:', error);
+                alert('데이터 저장에 실패했습니다.');
+            }
+        }
+
+        // 🎯 로컬스토리지에서 불러오기
+        function loadTodosFromStorage() {
+            try {
+                const stored = localStorage.getItem('todos');
+                if (stored) {
+                    todos = JSON.parse(stored);
+                    console.log('📂 불러오기 완료:', todos.length, '개 항목');
+                } else {
+                    console.log('📂 저장된 데이터 없음');
+                }
+            } catch (error) {
+                console.error('💥 불러오기 실패:', error);
+                todos = [];
+            }
+        }
+
+        // 🎯 샘플 데이터 추가 (첫 실행 시)
+        function addSampleData() {
+            const sampleTodos = [
+                { text: 'JavaScript 기본기 복습하기', priority: 'high' },
+                { text: 'React 강의 듣기', priority: 'medium' },
+                { text: '운동하기', priority: 'low' },
+                { text: '책 읽기', priority: 'low' }
+            ];
+
+            sampleTodos.forEach(sample => {
+                const todo = {
+                    id: Date.now() + Math.random(), // 고유 ID
+                    text: sample.text,
+                    completed: false,
+                    priority: sample.priority,
+                    createdAt: new Date().toLocaleString('ko-KR'),
+                    completedAt: null
+                };
+                todos.push(todo);
+            });
+
+            // 하나는 완료 상태로
+            if (todos.length > 0) {
+                todos[todos.length - 1].completed = true;
+                todos[todos.length - 1].completedAt = new Date().toLocaleString('ko-KR');
+            }
+
+            saveTodosToStorage();
+            console.log('🎯 샘플 데이터 추가 완료');
+        }
+
+        // 🎯 HTML 이스케이프 (보안)
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // 🎯 개발자 도구 함수들 (콘솔에서 테스트용)
+        window.debugTodos = {
+            showAll: () => console.table(todos),
+            addRandom: () => {
+                const randomTexts = ['커피 마시기', '산책하기', '음악 듣기', '영화 보기'];
+                const randomText = randomTexts[Math.floor(Math.random() * randomTexts.length)];
+                document.getElementById('todoInput').value = randomText;
+                addTodo();
+            },
+            clearStorage: () => {
+                localStorage.removeItem('todos');
+                location.reload();
+            }
+        };
+
+        console.log('🔧 개발자 도구 사용법:');
+        console.log('debugTodos.showAll() - 모든 할 일 테이블로 보기');
+        console.log('debugTodos.addRandom() - 랜덤 할 일 추가');
+        console.log('debugTodos.clearStorage() - 저장소 초기화');
+    </script>
+</body>
+</html>
