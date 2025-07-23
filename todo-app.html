@@ -149,7 +149,6 @@
         <div class="add-section">
             <h3>🆕 새 할 일 추가</h3>
             <input type="text" id="todoInput" class="form-control" placeholder="할 일을 입력하세요..." maxlength="100">
-            
             <div style="margin: 10px 0;">
                 <label>우선순위:</label>
                 <select id="prioritySelect" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">
@@ -157,6 +156,15 @@
                     <option value="medium">보통</option>
                     <option value="high">높음</option>
                 </select>
+                <label>카테고리:</label>
+                <select id="categorySelect" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">
+                    <option value=0>개인👤</option>
+                    <option value=1>업무💼</option>
+                    <option value=2>학습📚</option>
+                    <option value=3>건강💪</option>
+                </select>
+                <label>🗓️ 마감일 설정:</label>
+                <input type="date" id="dueDateInput">
             </div>
             
             <button class="btn btn-success" onclick="addTodo()">➕ 추가하기</button>
@@ -179,6 +187,14 @@
                 <button class="btn btn-success filter-btn" onclick="filterByPriority('low')" data-priority="low">낮음</button>
             </div>
             
+            <div>
+                <label>카테고리:</label>
+                <button class="btn filter-btn" onclick="filterByCategory(0)">개인👤</button>
+                <button class="btn btn-danger filter-btn" onclick="filterByCategory(1)">업무💼</button>
+                <button class="btn btn-warning filter-btn" onclick="filterByCategory(2)">학습📚</button>
+                <button class="btn btn-success filter-btn" onclick="filterByCategory(3)">건강💪</button>
+            </div>
+        
             <div style="flex: 1;">
                 <input type="text" id="searchInput" class="form-control" placeholder="할 일 검색..." onkeyup="searchTodos()">
             </div>
@@ -189,7 +205,8 @@
             <strong>통계:</strong> 
             <span id="totalCount">0</span>개 전체 | 
             <span id="activeCount">0</span>개 진행중 | 
-            <span id="completedCount">0</span>개 완료
+            <span id="completedCount">0</span>개 완료 |
+            <span id="completionRate">0%</span> 완료
         </div>
 
         <!-- 할 일 목록 -->
@@ -210,6 +227,38 @@
         let currentFilter = 'all';
         let currentPriorityFilter = 'all';
         let currentSearchTerm = '';
+        let currentCategoryFilter = '';
+        const categories = ['개인', '업무', '학습', '건강'];
+        const categoryColors = {
+            '개인': '#6f42c1',    // 보라색
+            '업무': '#dc3545',    // 빨간색  
+            '학습': '#0d6efd',    // 파란색
+            '건강': '#198754'     // 초록색
+        };
+        const categoryIcons = {
+            '개인': '👤',
+            '업무': '💼', 
+            '학습': '📚',
+            '건강': '💪'
+        };
+
+        // 🎯 할일에 메서드 추가하는 헬퍼 함수 (중요!)
+        function addMethodsToTodo(todo) {
+            if (!todo.category) todo.category = '개인'; // 기본값
+            
+            todo.isOverdue = function() {
+                return this.dueDate && new Date(this.dueDate) < new Date() && !this.completed; 
+            };
+            
+            todo.getCategoryStyle = function() {
+                return {
+                    color: categoryColors[this.category] || '#000',
+                    icon: categoryIcons[this.category] || '📝'
+                };
+            };
+            
+            return todo;
+        }
 
         // 🎯 할 일 객체 구조
         /*
@@ -256,6 +305,10 @@
 
         // 🎯 새 할 일 추가
         function addTodo() {
+            if (todos.length >= 10) {
+                alert("할 일은 최대 10개까지만 추가할 수 있습니다!");
+                return;
+            } 
             const input = document.getElementById('todoInput');
             const prioritySelect = document.getElementById('prioritySelect');
             const text = input.value.trim();
@@ -275,12 +328,18 @@
             // 새 할 일 객체 생성
             const newTodo = {
                 id: Date.now(),// 간단한 고유 ID
-                text: text,
+                text,
                 completed: false,
                 priority: prioritySelect.value,
                 createdAt: new Date().toLocaleString('ko-KR'),
-                completedAt: null
+                completedAt: null,
+                dueDate: document.getElementById('dueDateInput').value,
+                category: categories[parseInt(document.getElementById('categorySelect').value)], 
+                
             };
+
+            // 메서드 추가
+            addMethodsToTodo(newTodo);
 
             // 배열에 추가 (최신 항목을 맨 위에)
             todos.unshift(newTodo);
@@ -288,6 +347,8 @@
             // UI 업데이트
             input.value = '';
             prioritySelect.value = 'low';
+            document.getElementById('dueDateInput').value = '';
+            document.getElementById('categorySelect').value = '0';
             input.focus();
             
             // 저장 및 렌더링
@@ -372,12 +433,22 @@
             updateActiveFilterButton();
             renderTodos();
             console.log('🔍 필터 변경:', filter);
-        }dsfrf
+        }
 
         function filterByPriority(priority) {
             currentPriorityFilter = priority;
             renderTodos();
             console.log('🎯 우선순위 필터:', priority);
+        }
+
+        function filterByCategory(idx) {
+            if (!currentCategoryFilter || (currentCategoryFilter !== categories[idx])) {
+                currentCategoryFilter = categories[idx];
+            } else {
+                currentCategoryFilter = '';
+            }
+            renderTodos();
+            console.log('카테고리 필터:', categories[idx]);
         }
 
         function searchTodos() {
@@ -450,6 +521,9 @@
                 // 우선순위 필터
                 if (currentPriorityFilter !== 'all' && todo.priority !== currentPriorityFilter) return false;
                 
+                // 카테고리 필터
+                if (currentCategoryFilter !== '' && todo.category !== currentCategoryFilter) return false;
+
                 // 검색어 필터
                 if (currentSearchTerm && !todo.text.toLowerCase().includes(currentSearchTerm)) return false;
                 
@@ -462,6 +536,29 @@
             const priorityClass = `priority priority-${todo.priority}`;
             const priorityText = { high: '높음', medium: '보통', low: '낮음' }[todo.priority];
             
+            // 안전하게 카테고리 스타일 가져오기
+            let categoryStyle = { color: '#000', icon: '📝' };
+            if (todo.getCategoryStyle && typeof todo.getCategoryStyle === 'function') {
+                categoryStyle = todo.getCategoryStyle();
+            } else if (todo.category) {
+                categoryStyle = {
+                    color: categoryColors[todo.category] || '#000',
+                    icon: categoryIcons[todo.category] || '📝'
+                };
+            }
+            
+            // 마감일 표시
+            let dueDateDisplay = '';
+            if (todo.dueDate) {
+                if (todo.isOverdue && typeof todo.isOverdue === 'function' && todo.isOverdue()) {
+                    dueDateDisplay = `<div style="font-size: 12px; color: #dc3545;">🚨 마감일 지남: ${todo.dueDate}</div>`;
+                } else {
+                    dueDateDisplay = `<div style="font-size: 12px; color: #6c757d;">📅 마감일: ${todo.dueDate}</div>`;
+                }
+            }
+
+
+
             return `
                 <div class="todo-item ${todo.completed ? 'completed' : ''}">
                     <input type="checkbox" 
@@ -472,7 +569,7 @@
                     <span class="todo-text ${todo.completed ? 'completed' : ''}">${escapeHtml(todo.text)}</span>
                     
                     <span class="${priorityClass}">${priorityText}</span>
-                    
+                     <span style="color: ${categoryStyle.color}">${categoryStyle.icon} ${todo.category}</span>
                     <div>
                         <button class="btn" onclick="editTodo(${todo.id})" title="수정">✏️</button>
                         <button class="btn btn-warning" onclick="changePriority(${todo.id})" title="우선순위 변경">🎯</button>
@@ -483,6 +580,9 @@
                         생성: ${todo.createdAt}
                         ${todo.completedAt ? `<br>완료: ${todo.completedAt}` : ''}
                     </div>
+                    <div style="font-size: 12px; color: #dc3545;">
+                    ${!todo.completed && !todo.isOverdue ? `마감일: ${todo.dueDate}` : '마감일 지남'}
+                    </div>
                 </div>
             `;
         }
@@ -492,10 +592,12 @@
             const total = todos.length;
             const completed = todos.filter(t => t.completed).length;
             const active = total - completed;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
             document.getElementById('totalCount').textContent = total;
             document.getElementById('activeCount').textContent = active;
             document.getElementById('completedCount').textContent = completed;
+            document.getElementById('completionRate').textContent = `${percentage}%`;
         }
 
         // 🎯 전체 삭제
@@ -533,6 +635,17 @@
         // 🎯 로컬스토리지 저장
         function saveTodosToStorage() {
             try {
+                // 함수들을 제거한 순수 데이터만 저장
+                const dataToSave = todos.map(todo => ({
+                    id: todo.id,
+                    text: todo.text,
+                    completed: todo.completed,
+                    priority: todo.priority,
+                    createdAt: todo.createdAt,
+                    completedAt: todo.completedAt,
+                    dueDate: todo.dueDate,
+                    category: todo.category
+                }));
                 localStorage.setItem('todos', JSON.stringify(todos));
                 console.log('💾 저장 완료:', todos.length, '개 항목');
             } catch (error) {
@@ -546,7 +659,9 @@
             try {
                 const stored = localStorage.getItem('todos');
                 if (stored) {
-                    todos = JSON.parse(stored);
+                    const loadedTodos = JSON.parse(stored);
+                    // 불러온 각 할일에 메서드 추가
+                    todos = loadedTodos.map(todo => addMethodsToTodo(todo));
                     console.log('📂 불러오기 완료:', todos.length, '개 항목');
                 } else {
                     console.log('📂 저장된 데이터 없음');
@@ -560,12 +675,11 @@
         // 🎯 샘플 데이터 추가 (첫 실행 시)
         function addSampleData() {
             const sampleTodos = [
-                { text: 'JavaScript 기본기 복습하기', priority: 'high' },
-                { text: 'React 강의 듣기', priority: 'medium' },
-                { text: '운동하기', priority: 'low' },
-                { text: '책 읽기', priority: 'low' }
+                { text: 'JavaScript 기본기 복습하기', priority: 'high', category: '학습' },
+                { text: 'React 강의 듣기', priority: 'medium', category: '학습' },
+                { text: '운동하기', priority: 'low', category: '건강' },
+                { text: '프로젝트 회의', priority: 'high', category: '업무' }
             ];
-
             sampleTodos.forEach(sample => {
                 const todo = {
                     id: Date.now() + Math.random(), // 고유 ID
@@ -573,8 +687,13 @@
                     completed: false,
                     priority: sample.priority,
                     createdAt: new Date().toLocaleString('ko-KR'),
-                    completedAt: null
+                    completedAt: null,
+                    dueDate: '',
+                    category: sample.category
                 };
+
+                // 메서드 추가
+                addMethodsToTodo(todo);
                 todos.push(todo);
             });
 
